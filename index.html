@@ -30,17 +30,6 @@
             border-left: 4px solid #2196f3;
             border-radius: 4px;
         }
-        button {
-            padding: 10px 20px;
-            background-color: #2196f3;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #1976d2;
-        }
         #status {
             margin-top: 10px;
             color: #555;
@@ -49,13 +38,13 @@
 </head>
 <body>
     <h1>Website Notifications</h1>
-    <button onclick="requestNotificationPermission()">Enable Notifications</button>
-    <p id="status">Notification status: Not enabled</p>
+    <p id="status">Notification status: Initializing...</p>
     <div id="notification-container"></div>
 
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js"></script>
 
     <script>
         // Firebase configuration
@@ -72,6 +61,12 @@
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const messaging = firebase.messaging();
+        const db = firebase.firestore();
+
+        // Automatically request notification permission on page load
+        window.addEventListener('load', () => {
+            requestNotificationPermission();
+        });
 
         // Request notification permission
         function requestNotificationPermission() {
@@ -90,13 +85,15 @@
             });
         }
 
-        // Get FCM token and register for notifications
+        // Get FCM token, subscribe to topic, and store in Firestore
         function getToken() {
-            messaging.getToken({ vapidKey: 'BOdizejwXl0QqqKILXXBP5xQjx1GDsR4afx4qWGIg4jXuKQtDUWDGgZhb0fiq2QAS1oZVqaZunDBxQslw_uL4wQ' }).then(currentToken => {
+            messaging.getToken({ vapidKey: 'BOdizejwXl0QqqKILXXBP5xQjx1GDsR4afx4qWGIg4jXuKQtDUWDGgZhb0fiq2QAS1oZVqaZunDBxQslw_uL4wQ }).then(currentToken => {
                 if (currentToken) {
                     console.log('FCM Token:', currentToken);
-                    // Send token to your server to store it for sending notifications
-                    sendTokenToServer(currentToken);
+                    // Subscribe to 'all_users' topic
+                    subscribeToTopic(currentToken);
+                    // Store token in Firestore
+                    storeTokenInFirestore(currentToken);
                 } else {
                     console.log('No registration token available.');
                 }
@@ -105,18 +102,33 @@
             });
         }
 
-        // Send token to your server (implement this based on your backend)
-        function sendTokenToServer(token) {
-            // Example: Send token to your backend via fetch
-            fetch('/save-token', {
+        // Subscribe to topic
+        function subscribeToTopic(token) {
+            // Note: Client-side topic subscription is not directly supported in Firebase JS SDK.
+            // Instead, use a server or Firebase Function to subscribe tokens to topics.
+            // For simplicity, we'll assume the server handles this.
+            fetch('/subscribe-to-topic', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token: token })
+                body: JSON.stringify({ token, topic: 'all_users' })
             }).then(response => {
-                console.log('Token sent to server:', response);
+                console.log('Subscribed to topic:', response);
             }).catch(error => {
-                console.error('Error sending token to server:', error);
+                console.error('Error subscribing to topic:', error);
             });
+        }
+
+        // Store token in Firestore
+        async function storeTokenInFirestore(token) {
+            try {
+                await db.collection('tokens').doc(token).set({
+                    token: token,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                console.log('Token stored in Firestore');
+            } catch (error) {
+                console.error('Error storing token in Firestore:', error);
+            }
         }
 
         // Handle foreground notifications
@@ -125,8 +137,6 @@
             const notification = payload.notification;
             displayNotification(notification.title, notification.body);
         });
-
-iritto
 
         // Display notification on the webpage
         function displayNotification(title, body) {
@@ -141,7 +151,7 @@ iritto
                 navigator.serviceWorker.ready.then(registration => {
                     registration.showNotification(title, {
                         body: body,
-                        icon: '/icon.png' // Optional: Add an icon for notifications
+                        icon: '/icon.png'
                     });
                 });
             }
