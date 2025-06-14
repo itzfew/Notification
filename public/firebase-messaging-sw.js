@@ -1,6 +1,8 @@
-importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js');
-importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging.js');
+// Import Firebase scripts
+self.importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js');
+self.importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging.js');
 
+// Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyDLKPOqok8VS3gR4TAEGCEH4IEJL8kKpvw",
     authDomain: "ind-edu-f63b0.firebaseapp.com",
@@ -11,10 +13,12 @@ const firebaseConfig = {
     measurementId: "G-EPQM943Y2V"
 };
 
+// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-self.addEventListener('push', event => {
+// Handle background notifications
+self.addEventListener('push', function(event) {
     const payload = event.data.json();
     const notificationTitle = payload.notification.title;
     const notificationOptions = {
