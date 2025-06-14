@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Push Notifications</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        #notification-container {
+            margin-top: 20px;
+            padding: 10px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .notification {
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #e7f3fe;
+            border-left: 4px solid #2196f3;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #1976d2;
+        }
+        #status {
+            margin-top: 10px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>Website Notifications</h1>
+    <button onclick="requestNotificationPermission()">Enable Notifications</button>
+    <p id="status">Notification status: Not enabled</p>
+    <div id="notification-container"></div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging.js"></script>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDLKPOqok8VS3gR4TAEGCEH4IEJL8kKpvw",
+            authDomain: "ind-edu-f63b0.firebaseapp.com",
+            projectId: "ind-edu-f63b0",
+            storageBucket: "ind-edu-f63b0.firebasestorage.app",
+            messagingSenderId: "405906160405",
+            appId: "1:405906160405:web:7040d4f0118fa01d13071c",
+            measurementId: "G-EPQM943Y2V"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const messaging = firebase.messaging();
+
+        // Request notification permission
+        function requestNotificationPermission() {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    console.log('Notification permission granted.');
+                    document.getElementById('status').textContent = 'Notification status: Enabled';
+                    getToken();
+                } else {
+                    document.getElementById('status').textContent = 'Notification status: Permission denied';
+                    console.log('Notification permission denied.');
+                }
+            }).catch(error => {
+                console.error('Error requesting notification permission:', error);
+                document.getElementById('status').textContent = 'Notification status: Error';
+            });
+        }
+
+        // Get FCM token and register for notifications
+        function getToken() {
+            messaging.getToken({ vapidKey: 'YOUR_VAPID_KEY' }).then(currentToken => {
+                if (currentToken) {
+                    console.log('FCM Token:', currentToken);
+                    // Send token to your server to store it for sending notifications
+                    sendTokenToServer(currentToken);
+                } else {
+                    console.log('No registration token available.');
+                }
+            }).catch(error => {
+                console.error('Error retrieving token:', error);
+            });
+        }
+
+        // Send token to your server (implement this based on your backend)
+        function sendTokenToServer(token) {
+            // Example: Send token to your backend via fetch
+            fetch('/save-token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: token })
+            }).then(response => {
+                console.log('Token sent to server:', response);
+            }).catch(error => {
+                console.error('Error sending token to server:', error);
+            });
+        }
+
+        // Handle foreground notifications
+        messaging.onMessage(payload => {
+            console.log('Foreground notification received:', payload);
+            const notification = payload.notification;
+            displayNotification(notification.title, notification.body);
+        });
+
+iritto
+
+        // Display notification on the webpage
+        function displayNotification(title, body) {
+            const notificationContainer = document.getElementById('notification-container');
+            const notificationElement = document.createElement('div');
+            notificationElement.className = 'notification';
+            notificationElement.innerHTML = `<strong>${title}</strong><p>${body}</p>`;
+            notificationContainer.prepend(notificationElement);
+
+            // Show browser notification
+            if (Notification.permission === 'granted') {
+                navigator.serviceWorker.ready.then(registration => {
+                    registration.showNotification(title, {
+                        body: body,
+                        icon: '/icon.png' // Optional: Add an icon for notifications
+                    });
+                });
+            }
+        }
+    </script>
+</body>
+</html>
