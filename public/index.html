@@ -41,116 +41,123 @@
     <p id="status">Notification status: Initializing...</p>
     <div id="notification-container"></div>
 
-    <!-- Firebase SDK -->
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions.js"></script>
 
     <script>
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyDLKPOqok8VS3gR4TAEGCEH4IEJL8kKpvw",
-            authDomain: "ind-edu-f63b0.firebaseapp.com",
-            projectId: "ind-edu-f63b0",
-            storageBucket: "ind-edu-f63b0.firebasestorage.app",
-            messagingSenderId: "405906160405",
-            appId: "1:405906160405:web:7040d4f0118fa01d13071c",
-            measurementId: "G-EPQM943Y2V"
-        };
+        // Ensure Firebase is loaded
+        if (typeof firebase === 'undefined') {
+            console.error('Firebase SDK not loaded');
+            document.getElementById('status').textContent = 'Error: Firebase SDK not loaded';
+        } else {
+            // Firebase configuration
+            const firebaseConfig = {
+                apiKey: "AIzaSyDLKPOqok8VS3gR4TAEGCEH4IEJL8kKpvw",
+                authDomain: "ind-edu-f63b0.firebaseapp.com",
+                projectId: "ind-edu-f63b0",
+                storageBucket: "ind-edu-f63b0.firebasestorage.app",
+                messagingSenderId: "405906160405",
+                appId: "1:405906160405:web:7040d4f0118fa01d13071c",
+                measurementId: "G-EPQM943Y2V"
+            };
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const messaging = firebase.messaging();
-        const db = firebase.firestore();
-        const functions = firebase.functions();
+            // Initialize Firebase
+            firebase.initializeApp(firebaseConfig);
+            const messaging = firebase.messaging();
+            const db = firebase.firestore();
+            const functions = firebase.functions();
 
-        // Automatically request notification permission on page load
-        window.addEventListener('load', () => {
-            requestNotificationPermission();
-        });
-
-        // Request notification permission
-        function requestNotificationPermission() {
-            Notification.requestPermission().then(permission => {
-                if (permission === 'granted') {
-                    console.log('Notification permission granted.');
-                    document.getElementById('status').textContent = 'Notification status: Enabled';
-                    getToken();
-                } else {
-                    document.getElementById('status').textContent = 'Notification status: Permission denied';
-                    console.log('Notification permission denied.');
-                }
-            }).catch(error => {
-                console.error('Error requesting notification permission:', error);
-                document.getElementById('status').textContent = 'Notification status: Error';
+            // Automatically request notification permission on page load
+            window.addEventListener('load', () => {
+                requestNotificationPermission();
             });
-        }
 
-        // Get FCM token, subscribe to topic, and store in Firestore
-        function getToken() {
-            messaging.getToken({ vapidKey: 'BOdizejwXl0QqqKILXXBP5xQjx1GDsR4afx4qWGIg4jXuKQtDUWDGgZhb0fiq2QAS1oZVqaZunDBxQslw_uL4wQ' }).then(currentToken => {
-                if (currentToken) {
-                    console.log('FCM Token:', currentToken);
-                    // Subscribe to 'all_users' topic via Cloud Function
-                    subscribeToTopic(currentToken);
-                    // Store token in Firestore
-                    storeTokenInFirestore(currentToken);
-                } else {
-                    console.log('No registration token available.');
-                }
-            }).catch(error => {
-                console.error('Error retrieving token:', error);
-            });
-        }
-
-        // Subscribe to topic via Cloud Function
-        async function subscribeToTopic(token) {
-            try {
-                const subscribeFunction = functions.httpsCallable('subscribeToTopic');
-                await subscribeFunction({ token, topic: 'all_users' });
-                console.log('Subscribed to topic: all_users');
-            } catch (error) {
-                console.error('Error subscribing to topic:', error);
-            }
-        }
-
-        // Store token in Firestore
-        async function storeTokenInFirestore(token) {
-            try {
-                await db.collection('tokens').doc(token).set({
-                    token: token,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            // Request notification permission
+            function requestNotificationPermission() {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        console.log('Notification permission granted.');
+                        document.getElementById('status').textContent = 'Notification status: Enabled';
+                        getToken();
+                    } else {
+                        document.getElementById('status').textContent = 'Notification status: Permission denied';
+                        console.log('Notification permission denied.');
+                    }
+                }).catch(error => {
+                    console.error('Error requesting notification permission:', error);
+                    document.getElementById('status').textContent = 'Notification status: Error';
                 });
-                console.log('Token stored in Firestore');
-            } catch (error) {
-                console.error('Error storing token in Firestore:', error);
             }
-        }
 
-        // Handle foreground notifications
-        messaging.onMessage(payload => {
-            console.log('Foreground notification received:', payload);
-            const notification = payload.notification;
-            displayNotification(notification.title, notification.body);
-        });
+            // Get FCM token, subscribe to topic, and store in Firestore
+            function getToken() {
+                messaging.getToken({ 
+                    vapidKey: 'BOdizejwXl0QqqKILXXBP5xQjx1GDsR4afx4qWGIg4jXuKQtDUWDGgZhb0fiq2QAS1oZVqaZunDBxQslw_uL4wQ' 
+                }).then(currentToken => {
+                    if (currentToken) {
+                        console.log('FCM Token:', currentToken);
+                        subscribeToTopic(currentToken);
+                        storeTokenInFirestore(currentToken);
+                    } else {
+                        console.log('No registration token available.');
+                        document.getElementById('status').textContent = 'Notification status: No token available';
+                    }
+                }).catch(error => {
+                    console.error('Error retrieving token:', error);
+                    document.getElementById('status').textContent = 'Notification status: Error retrieving token';
+                });
+            }
 
-        // Display notification on the webpage
-        function displayNotification(title, body) {
-            const notificationContainer = document.getElementById('notification-container');
-            const notificationElement = document.createElement('div');
-            notificationElement.className = 'notification';
-            notificationElement.innerHTML = `<strong>${title}</strong><p>${body}</p>`;
-            notificationContainer.prepend(notificationElement);
+            // Subscribe to topic via Cloud Function
+            async function subscribeToTopic(token) {
+                try {
+                    const subscribeFunction = functions.httpsCallable('subscribeToTopic');
+                    await subscribeFunction({ token, topic: 'all_users' });
+                    console.log('Subscribed to topic: all_users');
+                } catch (error) {
+                    console.error('Error subscribing to topic:', error);
+                }
+            }
 
-            // Show browser notification
-            if (Notification.permission === 'granted') {
-                navigator.serviceWorker.ready.then(registration => {
-                    registration.showNotification(title, {
-                        body: body,
-                        icon: '/icon.png'
+            // Store token in Firestore
+            async function storeTokenInFirestore(token) {
+                try {
+                    await db.collection('tokens').doc(token).set({
+                        token: token,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
                     });
-                });
+                    console.log('Token stored in Firestore');
+                } catch (error) {
+                    console.error('Error storing token in Firestore:', error);
+                }
+            }
+
+            // Handle foreground notifications
+            messaging.onMessage(payload => {
+                console.log('Foreground notification received:', payload);
+                const notification = payload.notification;
+                displayNotification(notification.title, notification.body);
+            });
+
+            // Display notification on the webpage
+            function displayNotification(title, body) {
+                const notificationContainer = document.getElementById('notification-container');
+                const notificationElement = document.createElement('div');
+                notificationElement.className = 'notification';
+                notificationElement.innerHTML = `<strong>${title}</strong><p>${body}</p>`;
+                notificationContainer.prepend(notificationElement);
+
+                if (Notification.permission === 'granted') {
+                    navigator.serviceWorker.ready.then(registration => {
+                        registration.showNotification(title, {
+                            body: body,
+                            icon: '/icon.png'
+                        });
+                    });
+                }
             }
         }
     </script>
