@@ -1,8 +1,6 @@
-// Import Firebase scripts
-self.importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js');
-self.importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging.js');
+self.importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+self.importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js');
 
-// Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyDLKPOqok8VS3gR4TAEGCEH4IEJL8kKpvw",
     authDomain: "ind-edu-f63b0.firebaseapp.com",
@@ -13,17 +11,19 @@ const firebaseConfig = {
     measurementId: "G-EPQM943Y2V"
 };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const messaging = firebase.messaging();
+try {
+    firebase.initializeApp(firebaseConfig);
+    const messaging = firebase.messaging();
 
-// Handle background notifications
-self.addEventListener('push', function(event) {
-    const payload = event.data.json();
-    const notificationTitle = payload.notification.title;
-    const notificationOptions = {
-        body: payload.notification.body,
-        icon: '/icon.png'
-    };
-    event.waitUntil(self.registration.showNotification(notificationTitle, notificationOptions));
-});
+    self.addEventListener('push', function(event) {
+        const payload = event.data.json();
+        const notificationTitle = payload.notification.title;
+        const notificationOptions = {
+            body: payload.notification.body,
+            icon: '/icon.png'
+        };
+        event.waitUntil(self.registration.showNotification(notificationTitle, notificationOptions));
+    });
+} catch (error) {
+    console.error('Error initializing Firebase in service worker:', error);
+}
