@@ -45,6 +45,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions.js"></script>
 
     <script>
         // Firebase configuration
@@ -62,6 +63,7 @@
         firebase.initializeApp(firebaseConfig);
         const messaging = firebase.messaging();
         const db = firebase.firestore();
+        const functions = firebase.functions();
 
         // Automatically request notification permission on page load
         window.addEventListener('load', () => {
@@ -87,10 +89,10 @@
 
         // Get FCM token, subscribe to topic, and store in Firestore
         function getToken() {
-            messaging.getToken({ vapidKey: 'BOdizejwXl0QqqKILXXBP5xQjx1GDsR4afx4qWGIg4jXuKQtDUWDGgZhb0fiq2QAS1oZVqaZunDBxQslw_uL4wQ }).then(currentToken => {
+            messaging.getToken({ vapidKey: 'BOdizejwXl0QqqKILXXBP5xQjx1GDsR4afx4qWGIg4jXuKQtDUWDGgZhb0fiq2QAS1oZVqaZunDBxQslw_uL4wQ' }).then(currentToken => {
                 if (currentToken) {
                     console.log('FCM Token:', currentToken);
-                    // Subscribe to 'all_users' topic
+                    // Subscribe to 'all_users' topic via Cloud Function
                     subscribeToTopic(currentToken);
                     // Store token in Firestore
                     storeTokenInFirestore(currentToken);
@@ -102,20 +104,15 @@
             });
         }
 
-        // Subscribe to topic
-        function subscribeToTopic(token) {
-            // Note: Client-side topic subscription is not directly supported in Firebase JS SDK.
-            // Instead, use a server or Firebase Function to subscribe tokens to topics.
-            // For simplicity, we'll assume the server handles this.
-            fetch('/subscribe-to-topic', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, topic: 'all_users' })
-            }).then(response => {
-                console.log('Subscribed to topic:', response);
-            }).catch(error => {
+        // Subscribe to topic via Cloud Function
+        async function subscribeToTopic(token) {
+            try {
+                const subscribeFunction = functions.httpsCallable('subscribeToTopic');
+                await subscribeFunction({ token, topic: 'all_users' });
+                console.log('Subscribed to topic: all_users');
+            } catch (error) {
                 console.error('Error subscribing to topic:', error);
-            });
+            }
         }
 
         // Store token in Firestore
